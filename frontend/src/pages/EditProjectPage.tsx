@@ -1,0 +1,240 @@
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getProjectById, updateProject } from '../api/projectApi';
+import { createMonitor, updateMonitor, deleteMonitor } from '../api/monitorApi';
+import type { Project, Monitor } from '../types/models';
+import type { MonitorInput } from '../types/models';
+
+export default function EditProjectPage() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const [project, setProject] = useState<Project | null>(null);
+  const [editingMonitor, setEditingMonitor] = useState<Monitor | null>(null);
+  const [newMonitor, setNewMonitor] = useState(false);
+
+  useEffect(() => {
+    if (!projectId) return;
+    getProjectById(projectId).then(setProject);
+  }, [projectId]);
+
+  const handleProjectChange = (field: keyof Project, value: any) => {
+    if (!project) return;
+    setProject({ ...project, [field]: value });
+  };
+
+  const handleProjectSubmit = async () => {
+    if (!projectId || !project) return;
+    await updateProject(projectId, {
+      label: project.label,
+      description: project.description,
+      tags: project.tags,
+    });
+    navigate(`/projects/${projectId}`);
+  };
+
+  const handleMonitorSubmit = async (monitor: MonitorInput) => {
+    if (monitor.id) {
+        await updateMonitor(monitor.id, monitor);
+    } else {
+        await createMonitor(projectId!, monitor);
+    }
+    const updated = await getProjectById(projectId!);
+    setProject(updated);
+    setEditingMonitor(null);
+    setNewMonitor(false);
+    };
+
+
+
+  const handleDeleteMonitor = async (id: string) => {
+    await deleteMonitor(id);
+    const updated = await getProjectById(projectId!);
+    setProject(updated);
+  };
+
+  if (!project) return <div>Loading...</div>;
+
+  return (
+    <div style={{ maxWidth: 600, margin: 'auto' }}>
+      <h1>Edit Project</h1>
+      <input
+        placeholder="Label"
+        value={project.label}
+        onChange={e => handleProjectChange('label', e.target.value)}
+      />
+      <br />
+      <textarea
+        placeholder="Description"
+        value={project.description}
+        onChange={e => handleProjectChange('description', e.target.value)}
+      />
+      <br />
+      <input
+        placeholder="Comma-separated tags"
+        value={project.tags?.join(', ') || ''}
+        onChange={e =>
+          handleProjectChange(
+            'tags',
+            e.target.value.split(',').map(tag => tag.trim())
+          )
+        }
+      />
+      <br />
+      <button onClick={handleProjectSubmit}>Save Project</button>
+
+      <h2>Monitors</h2>
+      <ul>
+        {project.monitors?.map(m => (
+          <li key={m.id}>
+            <strong>{m.label}</strong> ({m.type}) every {m.periodicity}s
+            <button onClick={() => setEditingMonitor(m)}>Edit</button>
+            <button onClick={() => handleDeleteMonitor(m.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+
+      <button onClick={() => setNewMonitor(true)}>Create Monitor</button>
+
+      {(editingMonitor || newMonitor) && (
+        <MonitorEditor
+            monitor={
+                editingMonitor
+                ? {
+                    ...editingMonitor,
+                    type: editingMonitor.type as '' | 'ping' | 'website',
+                    }
+                : {
+                    label: '',
+                    type: '',
+                    periodicity: 60,
+                    badgeLabel: '',
+                    projectId: projectId!,
+                    }
+            }
+            onCancel={() => {
+                setEditingMonitor(null);
+                setNewMonitor(false);
+            }}
+            onSave={handleMonitorSubmit}
+            />
+
+      )}
+    </div>
+  );
+}function MonitorEditor({
+  monitor,
+  onCancel,
+  onSave,
+}: {
+  monitor: MonitorInput;
+  onCancel: () => void;
+  onSave: (monitor: MonitorInput) => void;
+}) {
+  const [local, setLocal] = useState<MonitorInput>(monitor);
+
+  const handleChange = (field: keyof MonitorInput, value: any) => {
+    setLocal({ ...local, [field]: value });
+  };
+
+  const disabled = !local.type;
+
+  return (
+    <div style={{ background: '#eee', padding: 16, marginTop: 16, borderRadius: 6 }}>
+      <h3>{monitor.id ? 'Edit Monitor' : 'New Monitor'}</h3>
+
+      {/* Type */}
+      <select
+        value={local.type}
+        onChange={(e) => handleChange('type', e.target.value as 'ping' | 'website')}
+      >
+        <option value="">Select monitor type</option>
+        <option value="ping">Ping</option>
+        <option value="website">Website</option>
+      </select>
+      <br /><br />
+
+      {/* Common fields */}
+      <input
+        placeholder="Label"
+        value={local.label}
+        disabled={disabled}
+        onChange={(e) => handleChange('label', e.target.value)}
+      />
+      <br /><br />
+
+      <input
+        placeholder="Badge Label"
+        value={local.badgeLabel}
+        disabled={disabled}
+        onChange={(e) => handleChange('badgeLabel', e.target.value)}
+      />
+      <br /><br />
+
+      <input
+        type="number"
+        min={5}
+        max={300}
+        placeholder="Periodicity (5–300 sec)"
+        value={local.periodicity}
+        disabled={disabled}
+        onChange={(e) => handleChange('periodicity', +e.target.value)}
+      />
+      <br /><br />
+
+      {/* Ping Monitor */}
+      {local.type === 'ping' && (
+        <>
+          <input
+            placeholder="Host (IP or name)"
+            value={local.host || ''}
+            onChange={(e) => handleChange('host', e.target.value)}
+          />
+          <br /><br />
+          <input
+            type="number"
+            placeholder="Port"
+            value={local.port || ''}
+            onChange={(e) => handleChange('port', +e.target.value)}
+          />
+          <br /><br />
+        </>
+      )}
+
+      {/* Website Monitor */}
+      {local.type === 'website' && (
+        <>
+          <input
+            placeholder="URL"
+            value={local.url || ''}
+            onChange={(e) => handleChange('url', e.target.value)}
+          />
+          <br /><br />
+          <label>
+            <input
+              type="checkbox"
+              checked={!!local.checkStatus}
+              onChange={(e) => handleChange('checkStatus', e.target.checked)}
+            />
+            {' '}Check Status Code
+          </label>
+          <br /><br />
+          <input
+            placeholder="Keywords (comma-separated)"
+            value={(local.keywords || []).join(', ')}
+            onChange={(e) =>
+              handleChange(
+                'keywords',
+                e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+              )
+            }
+          />
+          <br /><br />
+        </>
+      )}
+
+      <button onClick={() => onSave(local)} disabled={disabled}>Save</button>
+      <button onClick={onCancel}>Cancel</button>
+    </div>
+  );
+}
+
