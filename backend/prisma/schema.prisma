@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  label       String
+  description String?
+  tags        String[]  @default([]) // Stored as JSON array in MySQL
+  monitors    Monitor[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Monitor {
+  id          String    @id @default(uuid())
+  label       String
+  periodicity Int
+  type        String
+  host        String?   // Only for ping monitor
+  url         String?   // Only for website monitor
+  badgeLabel  String
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  statuses    Status[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Status {
+  id           String    @id @default(uuid())
+  time         DateTime
+  status       String    // 'up' or 'down'
+  responseTime Float?
+  monitorId    String
+  monitor      Monitor   @relation(fields: [monitorId], references: [id])
+}
