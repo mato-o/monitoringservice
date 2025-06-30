@@ -1,0 +1,347 @@
+openapi: 3.0.3
+info:
+  title: Monitoring Service API
+  version: 1.0.0
+  description: RESTful API for managing projects, monitors, and monitor status logs.
+
+servers:
+  - url: http://localhost:3000/api
+
+paths:
+  /projects:
+    get:
+      summary: List all projects
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: label
+          schema:
+            type: string
+        - in: query
+          name: tags
+          schema:
+            type: string
+            description: Comma-separated list of tags
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [label_asc, label_desc]
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+    post:
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectInput'
+      responses:
+        '201':
+          description: Created project
+
+  /projects/{projectId}:
+    get:
+      summary: Get project details
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+    put:
+      summary: Update project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectInput'
+      responses:
+        '200':
+          description: Updated project
+    delete:
+      summary: Delete project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Project deleted
+
+  /projects/{projectId}/monitors:
+    get:
+      summary: List monitors for a project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: label
+          schema:
+            type: string
+        - in: query
+          name: type
+          schema:
+            type: string
+        - in: query
+          name: latestStatus
+          schema:
+            type: string
+            enum: [up, down]
+      responses:
+        '200':
+          description: List of monitors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonitorListResponse'
+    post:
+      summary: Create a monitor
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonitorInput'
+      responses:
+        '201':
+          description: Monitor created
+
+  /monitors/{monitorId}:
+    get:
+      summary: Get monitor detail
+      parameters:
+        - in: path
+          name: monitorId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Monitor detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Monitor'
+    put:
+      summary: Update monitor
+      parameters:
+        - in: path
+          name: monitorId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonitorInput'
+      responses:
+        '200':
+          description: Monitor updated
+    delete:
+      summary: Delete monitor
+      parameters:
+        - in: path
+          name: monitorId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Monitor deleted
+
+  /monitors/{monitorId}/statuses:
+    get:
+      summary: Get monitor status history
+      parameters:
+        - in: path
+          name: monitorId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [up, down]
+        - in: query
+          name: offset
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of statuses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusListResponse'
+
+components:
+  schemas:
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    ProjectInput:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    ProjectListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        total:
+          type: integer
+
+    Monitor:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        periodicity:
+          type: integer
+        type:
+          type: string
+        host:
+          type: string
+        url:
+          type: string
+        badgeLabel:
+          type: string
+
+    MonitorInput:
+      type: object
+      required: [label, periodicity, type, badgeLabel]
+      properties:
+        label:
+          type: string
+        periodicity:
+          type: integer
+        type:
+          type: string
+        host:
+          type: string
+        url:
+          type: string
+        badgeLabel:
+          type: string
+
+    MonitorListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Monitor'
+        total:
+          type: integer
+
+    Status:
+      type: object
+      properties:
+        time:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [up, down]
+        responseTime:
+          type: number
+
+    StatusListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Status'
+        total:
+          type: integer
