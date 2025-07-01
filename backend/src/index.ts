@@ -1,31 +1,46 @@
-import express, { Application } from 'express';
+import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
+import bodyParser from 'body-parser';
 
-// Import REST routes
-import projectRoutes from './routes/projects';
-import monitorRoutes from './routes/monitors';
-import badgeRoutes from './routes/badge';
-import monitorStatusRoutes from './routes/monitorStatuses';
-
-const PORT = process.env.PORT || 3000;
+// Your GraphQL schema and resolvers
+import { typeDefs} from './graphql/schema';
+import { resolvers} from './graphql/resolvers';
 
 dotenv.config();
 
-const app: Application = express();
+const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// REST endpoints
-app.use('/projects', projectRoutes);
-app.use('/monitors', monitorRoutes);
-app.use('/badge', badgeRoutes);
-app.use('/monitors', monitorStatusRoutes);
-
-app.get('/', (_req, res) => {
-  res.send('Monitoring API is running');
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+(async () => {
+  await server.start();
+
+  app.use(
+    '/graphql',
+    expressMiddleware(server)
+  );
+
+  // REST endpoints
+  app.use('/projects', (await import('./routes/projects')).default);
+  app.use('/monitors', (await import('./routes/monitors')).default);
+  app.use('/badge', (await import('./routes/badge')).default);
+  app.use('/monitors', (await import('./routes/monitorStatuses')).default);
+
+  app.get('/', (_req, res) => {
+    res.send('Monitoring API is running');
+  });
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`GraphQL endpoint at http://localhost:${PORT}/graphql`);
+  });
+})();

@@ -42,16 +42,40 @@ export async function findMonitorById(id: string) {
   });
 }
 
-
 export const createMonitor = async (projectId: string, data: any) => {
   return prisma.monitor.create({
-    data: { ...data, projectId },
+    data: {
+      projectId,
+      label: data.label,
+      periodicity: data.periodicity,
+      type: data.type,
+      badgeLabel: data.badgeLabel,
+      host: data.host,
+      port: data.port,
+      url: data.url,
+      checkStatus: data.checkStatus,
+      keywords: data.keywords,
+    },
   });
 };
 
 export const updateMonitor = async (id: string, data: any) => {
-  return prisma.monitor.update({ where: { id }, data });
+  return prisma.monitor.update({
+    where: { id },
+    data: {
+      label: data.label,
+      periodicity: data.periodicity,
+      type: data.type,
+      badgeLabel: data.badgeLabel,
+      host: data.host,
+      port: data.port,
+      url: data.url,
+      checkStatus: data.checkStatus,
+      keywords: data.keywords,
+    },
+  });
 };
+
 
 export const deleteMonitor = async (id: string) => {
   return prisma.monitor.delete({ where: { id } });

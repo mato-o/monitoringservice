@@ -1,24 +1,35 @@
-import { gql } from 'apollo-server-express';
+import gql from "graphql-tag";
 
 export const typeDefs = gql`
-  type Project {
-    id: String!
-    label: String!
-    description: String
-    tags: [String!]!
-  }
-
   type Query {
     projects: [Project!]!
+    status(
+      monitorIdentifier: String!
+      from: Int
+      to: Int
+    ): [Status!]
+  }
+
+  type Project {
+    identifier: ID!
+    label: String!
+    description: String
+    monitors: [Monitor!]
+  }
+
+  type Monitor {
+    identifier: ID!
+    periodicity: Int
+    label: String!
+    type: String!
+    host: String
+    url: String
+    badgeUrl: String!
+  }
+
+  type Status {
+    date: String!
+    ok: Boolean!
+    responseTime: Int
   }
 `;
-
-export const resolvers = {
-  Query: {
-    projects: async () => {
-      return [
-        { id: '1', label: 'Example', description: 'Sample', tags: ['test'] }
-      ]; // TEMP: Replace with actual service call
-    },
-  },
-};

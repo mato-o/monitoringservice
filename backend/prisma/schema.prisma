@@ -19,18 +19,21 @@ model Project {
 }
 
 model Monitor {
-  id          String    @id @default(uuid())
-  label       String
-  periodicity Int
-  type        String
-  host        String?   // Only for ping monitor
-  url         String?   // Only for website monitor
-  badgeLabel  String
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id])
-  statuses    Status[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String    @id @default(uuid())
+  label        String
+  periodicity  Int
+  type         String
+  host         String?      // Ping monitor host
+  port         Int?         // Ping monitor port
+  url          String?      // Website monitor URL
+  checkStatus  Boolean?     // Website monitor status check
+  keywords     String[]     // Website monitor keywords
+  badgeLabel   String
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id])
+  statuses     Status[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model Status {
