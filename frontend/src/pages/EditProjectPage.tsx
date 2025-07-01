@@ -32,19 +32,36 @@ export default function EditProjectPage() {
     navigate(`/projects/${projectId}`);
   };
 
-  const handleMonitorSubmit = async (monitor: MonitorInput) => {
-    if (monitor.id) {
-        await updateMonitor(monitor.id, monitor);
-    } else {
-        await createMonitor(projectId!, monitor);
-    }
-    const updated = await getProjectById(projectId!);
-    setProject(updated);
-    setEditingMonitor(null);
-    setNewMonitor(false);
-    };
+const handleMonitorSubmit = async (monitor: MonitorInput) => {
+  const cleaned: any = {
+    label: monitor.label,
+    badgeLabel: monitor.badgeLabel,
+    periodicity: monitor.periodicity,
+    type: monitor.type,
+  };
 
+  if (monitor.type === 'ping') {
+    cleaned.host = monitor.host;
+    cleaned.port = monitor.port;
+  }
 
+  if (monitor.type === 'website') {
+    cleaned.url = monitor.url;
+    cleaned.checkStatus = monitor.checkStatus;
+    cleaned.keywords = monitor.keywords;
+  }
+
+  if (monitor.id) {
+    await updateMonitor(monitor.id, cleaned);
+  } else {
+    await createMonitor(projectId!, cleaned);
+  }
+
+  const updated = await getProjectById(projectId!);
+  setProject(updated);
+  setEditingMonitor(null);
+  setNewMonitor(false);
+};
 
   const handleDeleteMonitor = async (id: string) => {
     await deleteMonitor(id);
@@ -57,18 +74,22 @@ export default function EditProjectPage() {
   return (
     <div style={{ maxWidth: 600, margin: 'auto' }}>
       <h1>Edit Project</h1>
+      
+      Label:     
       <input
         placeholder="Label"
         value={project.label}
         onChange={e => handleProjectChange('label', e.target.value)}
       />
       <br />
+      Description: 
       <textarea
         placeholder="Description"
         value={project.description}
         onChange={e => handleProjectChange('description', e.target.value)}
       />
       <br />
+      Comma-separated tags:
       <input
         placeholder="Comma-separated tags"
         value={project.tags?.join(', ') || ''}
@@ -93,32 +114,45 @@ export default function EditProjectPage() {
         ))}
       </ul>
 
-      <button onClick={() => setNewMonitor(true)}>Create Monitor</button>
+      {/*<button onClick={() => setNewMonitor(true)}>Create Monitor</button>*/}
 
       {(editingMonitor || newMonitor) && (
-        <MonitorEditor
+        <ModalWrapper>
+          <MonitorEditor
             monitor={
-                editingMonitor
+              editingMonitor
                 ? {
                     ...editingMonitor,
-                    type: editingMonitor.type as '' | 'ping' | 'website',
-                    }
+                    type: editingMonitor.type as "" | "ping" | "website",
+                    host: editingMonitor.host || "",
+                    port: editingMonitor.port ?? 80,
+                    url: editingMonitor.url || "",
+                    checkStatus: editingMonitor.checkStatus ?? false,
+                    keywords: editingMonitor.keywords ?? [],
+                  }
                 : {
-                    label: '',
-                    type: '',
+                    label: "",
+                    type: "",
                     periodicity: 60,
-                    badgeLabel: '',
+                    badgeLabel: "",
                     projectId: projectId!,
-                    }
+                    host: "",
+                    port: 80,
+                    url: "",
+                    checkStatus: false,
+                    keywords: [],
+                  }
             }
             onCancel={() => {
-                setEditingMonitor(null);
-                setNewMonitor(false);
+              setEditingMonitor(null);
+              setNewMonitor(false);
             }}
             onSave={handleMonitorSubmit}
-            />
-
+          />
+        </ModalWrapper>
       )}
+
+
     </div>
   );
 }function MonitorEditor({
@@ -142,7 +176,7 @@ export default function EditProjectPage() {
     <div style={{ background: '#eee', padding: 16, marginTop: 16, borderRadius: 6 }}>
       <h3>{monitor.id ? 'Edit Monitor' : 'New Monitor'}</h3>
 
-      {/* Type */}
+      Type:
       <select
         value={local.type}
         onChange={(e) => handleChange('type', e.target.value as 'ping' | 'website')}
@@ -153,7 +187,7 @@ export default function EditProjectPage() {
       </select>
       <br /><br />
 
-      {/* Common fields */}
+      Label:
       <input
         placeholder="Label"
         value={local.label}
@@ -162,6 +196,7 @@ export default function EditProjectPage() {
       />
       <br /><br />
 
+      Badge Label:
       <input
         placeholder="Badge Label"
         value={local.badgeLabel}
@@ -170,6 +205,7 @@ export default function EditProjectPage() {
       />
       <br /><br />
 
+      Periodicity:
       <input
         type="number"
         min={5}
@@ -184,12 +220,14 @@ export default function EditProjectPage() {
       {/* Ping Monitor */}
       {local.type === 'ping' && (
         <>
+          Host (IP or name):
           <input
             placeholder="Host (IP or name)"
             value={local.host || ''}
             onChange={(e) => handleChange('host', e.target.value)}
           />
           <br /><br />
+         Port:
           <input
             type="number"
             placeholder="Port"
@@ -203,6 +241,7 @@ export default function EditProjectPage() {
       {/* Website Monitor */}
       {local.type === 'website' && (
         <>
+          URL:
           <input
             placeholder="URL"
             value={local.url || ''}
@@ -218,6 +257,7 @@ export default function EditProjectPage() {
             {' '}Check Status Code
           </label>
           <br /><br />
+          Keywords:
           <input
             placeholder="Keywords (comma-separated)"
             value={(local.keywords || []).join(', ')}
@@ -237,4 +277,38 @@ export default function EditProjectPage() {
     </div>
   );
 }
+
+function ModalWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        color:'#000',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          background: "#f2f2f2",
+          padding: "2rem",
+          borderRadius: "8px",
+          minWidth: "350px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+          color:'#000'
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 

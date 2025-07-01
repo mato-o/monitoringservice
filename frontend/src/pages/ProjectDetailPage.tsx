@@ -9,24 +9,41 @@ export default function ProjectDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
 
-  const [newMonitor, setNewMonitor] = useState({
+const [newMonitor, setNewMonitor] = useState({
   label: '',
   periodicity: 60,
   type: '',
   badgeLabel: '',
   host: '',
+  port: 80,
   url: '',
+  checkStatus: false,
+  keywords: '',
 });
 
 const handleCreateMonitor = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!projectId) return;
 
-  const monitorData = {
-    ...newMonitor,
-    host: newMonitor.type === 'ping' ? newMonitor.host : undefined,
-    url: newMonitor.type === 'website' ? newMonitor.url : undefined,
+  const monitorData: any = {
+    label: newMonitor.label,
+    periodicity: newMonitor.periodicity,
+    type: newMonitor.type,
+    badgeLabel: newMonitor.badgeLabel,
   };
+
+  if (newMonitor.type === 'ping') {
+    monitorData.host = newMonitor.host;
+    monitorData.port = newMonitor.port;
+  }
+
+  if (newMonitor.type === 'website') {
+    monitorData.url = newMonitor.url;
+    monitorData.checkStatus = newMonitor.checkStatus;
+    monitorData.keywords = newMonitor.keywords
+      ? newMonitor.keywords.split(',').map(k => k.trim()).filter(Boolean)
+      : [];
+  }
 
   try {
     const created = await createMonitor(projectId, monitorData);
@@ -41,14 +58,16 @@ const handleCreateMonitor = async (e: React.FormEvent) => {
       type: '',
       badgeLabel: '',
       host: '',
+      port: 80,
       url: '',
+      checkStatus: false,
+      keywords: '',
     });
     setIsModalOpen(false); // close popup
   } catch (err) {
     console.error('Failed to create monitor', err);
   }
 };
-
 
   useEffect(() => {
     if (!projectId) return;
@@ -73,6 +92,9 @@ const handleCreateMonitor = async (e: React.FormEvent) => {
       <h1>{project.label}</h1>
       <p>{project.description}</p>
       <p>Tags: {project.tags?.join(', ')}</p>
+      <Link to={`/projects/${project.id}/edit`}>
+        <button>Edit Project</button>
+      </Link>
       <button onClick={() => setIsModalOpen(true)}>+ Create Monitor</button>
       <h2>Monitors</h2>
       {project.monitors && project.monitors.length > 0 ? (
@@ -177,29 +199,67 @@ const handleCreateMonitor = async (e: React.FormEvent) => {
               </label>
 
               {newMonitor.type === 'ping' && (
-                <label style={{ width: '100%' }}>
-                  Host:
-                  <input
-                    type="text"
-                    value={newMonitor.host || ''}
-                    onChange={(e) => setNewMonitor({ ...newMonitor, host: e.target.value })}
-                    required
-                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                  />
-                </label>
+                <>
+                  <label style={{ width: '100%' }}>
+                    Host:
+                    <input
+                      type="text"
+                      value={newMonitor.host || ''}
+                      onChange={(e) => setNewMonitor({ ...newMonitor, host: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                    />
+                  </label>
+
+                  <label style={{ width: '100%' }}>
+                    Port:
+                    <input
+                      type="number"
+                      min={1}
+                      max={65535}
+                      value={newMonitor.port}
+                      onChange={(e) => setNewMonitor({ ...newMonitor, port: parseInt(e.target.value) })}
+                      required
+                      style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                    />
+                  </label>
+                </>
               )}
 
               {newMonitor.type === 'website' && (
-                <label style={{ width: '100%' }}>
-                  URL:
-                  <input
-                    type="text"
-                    value={newMonitor.url || ''}
-                    onChange={(e) => setNewMonitor({ ...newMonitor, url: e.target.value })}
-                    required
-                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-                  />
-                </label>
+                <>
+                  <label style={{ width: '100%' }}>
+                    URL:
+                    <input
+                      type="text"
+                      value={newMonitor.url || ''}
+                      onChange={(e) => setNewMonitor({ ...newMonitor, url: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                    />
+                  </label>
+
+                  <label style={{ width: '100%' }}>
+                    Check status code (200–299):
+                    <input
+                      type="checkbox"
+                      checked={newMonitor.checkStatus}
+                      onChange={(e) => setNewMonitor({ ...newMonitor, checkStatus: e.target.checked })}
+                      style={{ marginLeft: '0.5rem' }}
+                    />
+                  </label>
+
+                  <label style={{ width: '100%' }}>
+                    Keywords (comma-separated):
+                    <input
+                      type="text"
+                      value={newMonitor.keywords}
+                      onChange={(e) => setNewMonitor({ ...newMonitor, keywords: e.target.value })}
+                      placeholder="e.g. Welcome,Dashboard"
+                      style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+                    />
+                  </label>
+                </>
               )}
             </>
           )}

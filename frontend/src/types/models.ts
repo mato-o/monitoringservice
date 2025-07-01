@@ -10,11 +10,14 @@ export type Monitor = {
   id: string;
   label: string;
   periodicity: number;
-  type: string;
-  url?: string;
-  host?: string;
+  type: 'ping' | 'website';
   badgeLabel: string;
   projectId: string;
+  host?: string;
+  port?: number;
+  url?: string;
+  checkStatus?: boolean;
+  keywords?: string[];
 };
 
 export type MonitorInput = {
@@ -25,7 +28,6 @@ export type MonitorInput = {
   periodicity: number;
   projectId: string;
 
-  // Optional fields based on monitor type
   host?: string;
   port?: number;
 
@@ -33,8 +35,6 @@ export type MonitorInput = {
   checkStatus?: boolean;
   keywords?: string[];
 };
-
-
 
 export type Status = {
   id: string;

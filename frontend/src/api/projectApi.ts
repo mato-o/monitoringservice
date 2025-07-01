@@ -44,5 +44,12 @@ export async function createProject(data: {
   return response.json();
 }
 
+export async function deleteProject(id: string): Promise<void> {
+  const res = await fetch(`http://localhost:3000/projects/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to delete project');
+}
+
 
 

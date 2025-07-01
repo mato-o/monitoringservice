@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Project } from '../types/models';
-import { getProjects } from '../api/projectApi';
+import { getProjects, deleteProject } from '../api/projectApi';
 import { Link } from 'react-router-dom';
 
 const ProjectListPage = () => {
@@ -25,6 +25,18 @@ const ProjectListPage = () => {
         {projects.map(project => (
           <li key={project.id}>
             <Link to={`/projects/${project.id}`}>{project.label}</Link>
+            <button
+              onClick={async () => {
+                if (confirm(`Delete project "${project.label}"? This cannot be undone.`)) {
+                  await deleteProject(project.id);
+                  // Remove it from the list
+                  setProjects(prev => prev.filter(p => p.id !== project.id));
+                }
+              }}
+              style={{ marginLeft: '1rem' }}
+            >
+              Delete
+            </button>
           </li>
         ))}
         <Link to="/projects/create">
